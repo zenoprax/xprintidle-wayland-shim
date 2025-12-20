@@ -1,35 +1,22 @@
 #!/bin/bash
 
-# Verbose marker file in case it shows up in logs or backups
-# Runtime directory chosen to keep out of sight and out of logs and backups
-export IDLE_MARKER=${XDG_RUNTIME_DIR}/spoofed_idle_via_usr-bin-xprintidle_is_active
-
-# 1. Daemon Check: Ensure swayidle is running in the background.
-# We use a lock file concept via pgrep to ensure only one instance runs.
+# 1. Daemon Check
+# Ensure swayidle is running.
 if ! pgrep -u "$USER" -x "swayidle" > /dev/null; then
-    # Start swayidle detached.
-    # -w: Wait for command to finish (needed for proper protocol sync).
-    # timeout 1: After 1 second of idle, create/touch the marker file.
-    # resume: Immediately remove the marker file when activity is detected.
     nohup swayidle -w \
-        timeout 1 'touch "$IDLE_MARKER"' \
-        resume 'rm -f "$IDLE_MARKER"' \
+        timeout 1 'touch /tmp/wayland_idle_mark' \
+        resume 'rm -f /tmp/wayland_idle_mark' \
         > /dev/null 2>&1 &
 fi
 
 # 2. Time Calculation
-# If the marker file exists, we are idle. Calculate delta.
-if [ -f "$IDLE_MARKER" ]; then
+# Try to get the stat first. Redirect stderr to /dev/null to suppress "No such file".
+# If stat fails (file doesn't exist), the if-condition is false.
+if MARK=$(stat -c %Y /tmp/wayland_idle_mark 2>/dev/null); then
     NOW=$(date +%s)
-    # Get file modification time (epoch seconds)
-    MARK=$(stat -c %Y "$IDLE_MARKER")
-
-    # Math: Current Time - Mark Time + 1 second (since we waited 1s to trigger)
-    # Convert to milliseconds for the Electron app.
     IDLE_SEC=$((NOW - MARK + 1))
     echo $((IDLE_SEC * 1000))
 else
-    # File doesn't exist = active or idle < 1s.
+    # Stat failed, meaning file does not exist (active)
     echo 0
 fi
-
