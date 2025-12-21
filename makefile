@@ -39,6 +39,5 @@ install: check require-root
 replace: check require-root
 	@$(INSTALL_CMD)
 
-uninstall:
+uninstall: require-root
 	rm -f "$(TARGET)"
-
