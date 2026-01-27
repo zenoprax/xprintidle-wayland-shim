@@ -2,7 +2,7 @@
 
 # Verbose marker file in case it shows up in logs or backups
 # Runtime directory chosen to keep out of sight and out of logs and backups
-export IDLE_MARKER=${XDG_RUNTIME_DIR}/spoofed_idle_via_usr-bin-xprintidle_is_active
+export IDLE_MARKER=/dev/shm/spoofed_idle_via_usr-bin-xprintidle_is_active
 
 # 1. Daemon Check: Ensure swayidle is running in the background.
 # We use a lock file concept via pgrep to ensure only one instance runs.
@@ -12,7 +12,7 @@ if ! pgrep -u "$USER" -x "swayidle" > /dev/null; then
     # timeout 1: After 1 second of idle, create/touch the marker file.
     # resume: Immediately remove the marker file when activity is detected.
     nohup swayidle -w \
-        timeout 1 'touch "$IDLE_MARKER"' \
+        timeout 5 'touch "$IDLE_MARKER"' \
         resume 'rm -f "$IDLE_MARKER"' \
         > /dev/null 2>&1 &
 fi
@@ -26,7 +26,7 @@ if [ -f "$IDLE_MARKER" ]; then
 
     # Math: Current Time - Mark Time + 1 second (since we waited 1s to trigger)
     # Convert to milliseconds for the Electron app.
-    IDLE_SEC=$((NOW - MARK + 1))
+    IDLE_SEC=$((NOW - MARK + 5))
     echo $((IDLE_SEC * 1000))
 else
     # File doesn't exist = active or idle < 1s.
