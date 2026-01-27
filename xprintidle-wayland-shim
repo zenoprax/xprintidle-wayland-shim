@@ -1,15 +1,14 @@
 #!/bin/bash
 
 # Verbose marker file in case it shows up in logs or backups
-# Runtime directory chosen to keep out of sight and out of logs and backups
-export IDLE_MARKER=/dev/shm/spoofed_idle_via_usr-bin-xprintidle_is_active
-
+# Use temporary file to avoid useless write cycles.
+export IDLE_MARKER=/tmp/user_is_idle
 # 1. Daemon Check: Ensure swayidle is running in the background.
 # We use a lock file concept via pgrep to ensure only one instance runs.
 if ! pgrep -u "$USER" -x "swayidle" > /dev/null; then
     # Start swayidle detached.
     # -w: Wait for command to finish (needed for proper protocol sync).
-    # timeout 1: After 1 second of idle, create/touch the marker file.
+    # timeout 5: After 5 second of idle, create/touch the marker file.
     # resume: Immediately remove the marker file when activity is detected.
     nohup swayidle -w \
         timeout 5 'touch "$IDLE_MARKER"' \
