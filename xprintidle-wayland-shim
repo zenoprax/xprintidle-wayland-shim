@@ -12,23 +12,18 @@ if ! pgrep -u "$USER" -x "swayidle" > /dev/null; then
     # resume: Immediately remove the marker file when activity is detected.
     nohup swayidle -w \
         timeout 5 'touch "$IDLE_MARKER"' \
-        resume 'rm -f "$IDLE_MARKER"' \
-        > /dev/null 2>&1 &
+        resume 'rm -f "$IDLE_MARKER"' > /dev/null 2>&1 &
 fi
 
 # 2. Time Calculation
 # If the marker file exists, we are idle. Calculate delta.
-if [ -f "$IDLE_MARKER" ]; then
+if MARK=$(stat -c %Y "$IDLE_MARKER" 2> /dev/null); then
     NOW=$(date +%s)
-    # Get file modification time (epoch seconds)
-    MARK=$(stat -c %Y "$IDLE_MARKER")
 
-    # Math: Current Time - Mark Time + 1 second (since we waited 1s to trigger)
     # Convert to milliseconds for the Electron app.
     IDLE_SEC=$((NOW - MARK + 5))
     echo $((IDLE_SEC * 1000))
 else
-    # File doesn't exist = active or idle < 1s.
+    # Stat failed, meaning file does not exist (active)
     echo 0
 fi
-
